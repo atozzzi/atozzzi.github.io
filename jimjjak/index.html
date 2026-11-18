@@ -65,6 +65,15 @@
   .mode.demo::before{content:"●";color:#c0623a;margin-right:5px}
   .btn-ghost{border:1px solid var(--gold-soft);background:rgba(255,255,255,.5);color:var(--ink-soft);padding:7px 16px;border-radius:999px;font-size:13px}
   .btn-ghost.armed{background:#c98b5e;border-color:#c98b5e;color:#fff}
+  .example{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:4vh 4vw;
+    background:rgba(70,48,32,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;animation:fadein .35s ease-out}
+  .example .cap{font-family:var(--serif);font-weight:700;font-size:clamp(22px,2.2vw,38px);color:#fffaf3;text-shadow:0 2px 16px rgba(80,50,30,.5)}
+  .example .sub{font-size:clamp(14px,1.1vw,18px);color:rgba(255,250,243,.9);margin-top:-12px}
+  .example img{max-width:min(92vw,1400px);max-height:76vh;border-radius:20px;box-shadow:0 24px 60px rgba(60,40,25,.35)}
+  .example .card{width:min(560px,86vw);margin:30px 0 10px;cursor:default;font-size:1.15em}
+  .example .card .burden{font-size:clamp(26px,2.2vw,36px)}
+  .example .card .story{font-size:clamp(16px,1.3vw,20px)}
+  @keyframes fadein{from{opacity:0}to{opacity:1}}
 
   .board{position:relative;overflow-y:auto;padding:clamp(28px,3vw,52px)}
   .grid{columns:clamp(230px,19vw,330px);column-gap:26px}
@@ -339,7 +348,7 @@ function mountWall(root, store) {
           <p>짐짝이 사라지지 않았다고 해서,<br>우리가 지고 있는 것은 아니라는 것.</p>
           <div class="qr"><div id="qrcode"></div><div class="cap">QR을 찍어 당신의 짐짝을 들려주세요</div><div class="url"></div></div>
           <div class="count"><b id="count">0</b>개의 짐짝을 마주했어요</div>
-          <div class="tools"><button class="btn-ghost" id="reset">초기화</button><span class="mode" id="mode"></span></div>
+          <div class="tools"><button class="btn-ghost" id="example">예시 보기</button><button class="btn-ghost" id="reset">초기화</button><span class="mode" id="mode"></span></div>
         </aside>
         <main class="board">
           <div class="empty" id="empty">${CANDLE}<div>마주하는 순간부터,<br>새로운 도전은 이미 시작되고 있어요.</div></div>
@@ -392,6 +401,30 @@ function mountWall(root, store) {
   const modeEl = root.querySelector('#mode');
   const MODE_TEXT = { on: '실시간 연결됨', off: '3초마다 확인 중', demo: '체험 모드 · 이 브라우저에만 저장' };
   store.status(st => { modeEl.className = 'mode ' + st; modeEl.textContent = MODE_TEXT[st]; });
+
+  // 예시 보기: img/example.jpg 가 있으면 그 이미지를, 없으면 예시 짐가방을 크게 보여줌
+  const EXAMPLE = { id: 'example0', nick: '짐짝클럽', burden: '오랫동안 내려놓지 못했던 마음',
+    story: '조금씩 내려놓는 연습을 시작했어요. 아직 다 내려놓진 못했지만, 마주하기 시작한 것만으로도 한결 가벼워졌어요.' };
+  let exampleImg = null;
+  const probe = new Image();
+  probe.onload = () => { exampleImg = probe.src; };
+  probe.src = 'img/example.jpg';
+  function showExample() {
+    const ov = document.createElement('div');
+    ov.className = 'example';
+    ov.innerHTML = '<div class="cap">이렇게 남겨주시면 돼요</div><div class="sub">화면 아무 곳이나 누르면 닫혀요</div>';
+    if (exampleImg) {
+      const im = new Image(); im.src = exampleImg; im.alt = '예시'; ov.appendChild(im);
+    } else {
+      const c = card(EXAMPLE, false); c.querySelector('.del')?.remove(); ov.appendChild(c);
+    }
+    const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
+    const onKey = e => { if (e.key === 'Escape') close(); };
+    ov.onclick = close;
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(ov);
+  }
+  root.querySelector('#example').onclick = showExample;
 
   // 초기화: 두 번 눌러야 실행
   const btn = root.querySelector('#reset');
