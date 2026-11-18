@@ -58,7 +58,11 @@
   .qr .url{margin-top:4px;font-size:11px;color:#b9a594;text-align:center;word-break:break-all}
   .count{font-family:var(--serif);font-size:clamp(15px,1.1vw,19px)}
   .count b{font-size:2em;color:#b07b4f;margin-right:4px;font-weight:700}
-  .tools{margin-top:auto}
+  .tools{margin-top:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .mode{font-size:12px;color:var(--ink-soft)}
+  .mode.on::before{content:"●";color:#6aa86f;margin-right:5px}
+  .mode.off::before{content:"●";color:#d4a04f;margin-right:5px}
+  .mode.demo::before{content:"●";color:#c0623a;margin-right:5px}
   .btn-ghost{border:1px solid var(--gold-soft);background:rgba(255,255,255,.5);color:var(--ink-soft);padding:7px 16px;border-radius:999px;font-size:13px}
   .btn-ghost.armed{background:#c98b5e;border-color:#c98b5e;color:#fff}
 
@@ -228,6 +232,7 @@ async function createStore() {
         if (nick) data.nick = nick;
         return push(ref(db, 'items'), data);
       },
+      status(cb) { onValue(ref(db, '.info/connected'), snap => cb(snap.val() ? 'on' : 'off')); },
       clearAll: null // 실제 모드에서는 화면만 비웁니다(데이터는 Firebase 콘솔에서 삭제)
     };
   }
@@ -243,6 +248,7 @@ async function createStore() {
       items.push({ id: Math.random().toString(16).slice(2, 14), nick, burden, story, at: Date.now() });
       ls.set(KEY, items); emit();
     },
+    status(cb) { cb('demo'); },
     clearAll() { ls.set(KEY, []); emit(); }
   };
 }
@@ -316,7 +322,7 @@ function mountWall(root, store) {
           <p>짐짝이 사라지지 않았다고 해서,<br>우리가 지고 있는 것은 아니라는 것.</p>
           <div class="qr"><div id="qrcode"></div><div class="cap">QR을 찍어 당신의 짐짝을 들려주세요</div><div class="url"></div></div>
           <div class="count"><b id="count">0</b>개의 짐짝을 마주했어요</div>
-          <div class="tools"><button class="btn-ghost" id="reset">초기화</button></div>
+          <div class="tools"><button class="btn-ghost" id="reset">초기화</button><span class="mode" id="mode"></span></div>
         </aside>
         <main class="board">
           <div class="empty" id="empty">${CANDLE}<div>마주하는 순간부터,<br>새로운 도전은 이미 시작되고 있어요.</div></div>
@@ -364,6 +370,9 @@ function mountWall(root, store) {
   }
 
   store.subscribe(items => { all = items; render(); });
+  const modeEl = root.querySelector('#mode');
+  const MODE_TEXT = { on: '실시간 연결됨', off: '3초마다 확인 중', demo: '체험 모드 · 이 브라우저에만 저장' };
+  store.status(st => { modeEl.className = 'mode ' + st; modeEl.textContent = MODE_TEXT[st]; });
 
   // 초기화: 두 번 눌러야 실행
   const btn = root.querySelector('#reset');
