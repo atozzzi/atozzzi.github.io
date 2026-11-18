@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>짐짝클럽 · 올 한해 나의 짐짝</title>
+<title>짐짝클럽 · 올 한 해 나의 짐짝</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap">
@@ -254,20 +254,20 @@ function mountForm(root, store) {
       <div class="hero"></div>
       <div class="write">
         <form>
-          <h1>올 한해, <em>나의 짐짝</em>은<br>무엇이었나요?</h1>
-          <p class="lead">무겁게 짊어졌던 것, 그리고 그걸 안고 걸어온 이야기를 들려주세요. 전송하면 앞 화면에 조용히 놓여요.</p>
+          <h1>올 한 해,<br>어떤 <em>짐짝</em>을 안고 계셨나요?</h1>
+          <p class="lead">자신의 짐짝을 외면하지 않고 마주하는 순간부터, 새로운 도전은 이미 시작되고 있는지도 몰라요. 당신의 짐짝과 그 안에서 발견한 것을 들려주세요.</p>
           <div class="field">
             <label>닉네임 <small>(선택)</small></label>
             <input name="nick" maxlength="${MAX_NICK}" placeholder="비워두면 익명의 짐꾼" autocomplete="off">
           </div>
           <div class="field">
-            <label>올해 나의 짐짝은?</label>
-            <textarea name="burden" rows="2" maxlength="${MAX_BURDEN}" placeholder="예) 처음 맡아본 팀 리드 역할"></textarea>
+            <label>올 한 해 안고 있던 짐짝은?</label>
+            <textarea name="burden" rows="2" maxlength="${MAX_BURDEN}" placeholder="예) 오랫동안 내려놓지 못했던 마음"></textarea>
             <div class="meta"><span data-c="burden">0</span> / ${MAX_BURDEN}</div>
           </div>
           <div class="field">
-            <label>어떻게 도전했나요? <small>(선택)</small></label>
-            <textarea name="story" rows="5" maxlength="${MAX_STORY}" placeholder="부딪혀 본 방법, 버틴 비결, 아직 진행 중인 이야기도 좋아요."></textarea>
+            <label>그 짐짝을 통해 무엇을 발견했나요? <small>(선택)</small></label>
+            <textarea name="story" rows="5" maxlength="${MAX_STORY}" placeholder="조금씩 내려놓게 된 것, 새롭게 깨달은 것, 찾아가고 있는 나만의 길… 무엇이든 좋아요."></textarea>
             <div class="meta"><span data-c="story">0</span> / ${MAX_STORY}</div>
           </div>
           <button class="send" type="submit">짐짝 내려놓기</button>
@@ -276,7 +276,7 @@ function mountForm(root, store) {
         <div class="done" hidden>
           ${CANDLE}
           <h2>짐짝이 잘 도착했어요</h2>
-          <p>앞 화면에서 함께 바라봐 주세요.<br>올 한해, 정말 수고 많으셨어요.</p>
+          <p>마주한 그 순간부터,<br>새로운 도전은 이미 시작됐어요.<br>올 한 해, 정말 수고 많으셨어요.</p>
           <button class="again" type="button">하나 더 보내기</button>
         </div>
       </div>
@@ -289,7 +289,7 @@ function mountForm(root, store) {
     e.preventDefault();
     err.textContent = '';
     const n = nick.value.trim(), b = burden.value.trim(), s = story.value.trim();
-    if (!b) { err.textContent = '올해의 짐짝을 적어주세요.'; burden.focus(); return; }
+    if (!b) { err.textContent = '안고 있던 짐짝을 적어주세요.'; burden.focus(); return; }
     btn.disabled = true; btn.textContent = '보내는 중…';
     store.send({ nick: n.slice(0, MAX_NICK), burden: b.slice(0, MAX_BURDEN), story: s.slice(0, MAX_STORY) })
       .then(() => { burden.value = story.value = ''; upd(); form.hidden = true; done.hidden = false; root.scrollTop = 0; })
@@ -312,14 +312,14 @@ function mountWall(root, store) {
       <div class="wall ${DEMO ? 'demo' : ''}">
         <aside class="side">
           <div class="brand">${LOGO()}</div>
-          <h1>올 한해,<br><em>나의 짐짝</em>은<br>무엇이었나요?</h1>
-          <p>무겁게 짊어졌던 것과<br>그걸 안고 걸어온 이야기를 나눠주세요.</p>
-          <div class="qr"><div id="qrcode"></div><div class="cap">QR을 찍어 이야기를 남겨주세요</div><div class="url"></div></div>
-          <div class="count"><b id="count">0</b>개의 짐짝이 놓였어요</div>
+          <h1>올 한 해,<br>어떤 <em>짐짝</em>을<br>안고 계셨나요?</h1>
+          <p>짐짝이 사라지지 않았다고 해서,<br>우리가 지고 있는 것은 아니라는 것.</p>
+          <div class="qr"><div id="qrcode"></div><div class="cap">QR을 찍어 당신의 짐짝을 들려주세요</div><div class="url"></div></div>
+          <div class="count"><b id="count">0</b>개의 짐짝을 마주했어요</div>
           <div class="tools"><button class="btn-ghost" id="reset">초기화</button></div>
         </aside>
         <main class="board">
-          <div class="empty" id="empty">${CANDLE}<div>아직 놓인 짐짝이 없어요.<br>첫 번째 이야기를 기다리고 있어요.</div></div>
+          <div class="empty" id="empty">${CANDLE}<div>마주하는 순간부터,<br>새로운 도전은 이미 시작되고 있어요.</div></div>
           <div class="grid" id="grid"></div>
         </main>
         ${DEMO ? `<aside class="phone-col"><div class="tag">체험용 휴대폰 · QR로 접속한 화면</div><div class="phone"><div class="screen" id="phone"></div></div></aside>` : ''}
