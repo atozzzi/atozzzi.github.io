@@ -187,7 +187,9 @@ const MAX_STORY = 400;
 
 <script type="module">
 const DEMO = !FIREBASE_CONFIG;
-const MODE = new URLSearchParams(location.search).get('m') === 'write' ? 'write' : 'wall';
+const QS = new URLSearchParams(location.search);
+const MODE = QS.get('m') === 'write' ? 'write' : 'wall';
+const ADMIN_KEY = (QS.get('key') || '').replace(/[^a-zA-Z0-9_-]/g, '');
 
 /* ── 아이콘 ── */
 const BAG = `<svg class="bag" viewBox="0 0 48 40" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="12" width="40" height="24" rx="6"/><path d="M17 12V8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v4"/></svg>`;
@@ -213,7 +215,7 @@ async function createStore() {
   if (!DEMO) {
     const V = '10.12.2';
     const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
-    const { getDatabase, ref, push, onValue, serverTimestamp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-database.js`);
+    const { getDatabase, ref, push, onValue, update, serverTimestamp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-database.js`);
     const db = getDatabase(initializeApp(FIREBASE_CONFIG));
     return {
       subscribe(cb) {
@@ -233,11 +235,23 @@ async function createStore() {
         return push(ref(db, 'items'), data);
       },
       status(cb) { onValue(ref(db, '.info/connected'), snap => cb(snap.val() ? 'on' : 'off')); },
-      clearAll: null // 실제 모드에서는 화면만 비웁니다(데이터는 Firebase 콘솔에서 삭제)
+      // 초기화 시점·숨긴 카드는 Firebase(meta)에 저장 → 모든 화면에 똑같이 적용
+      subscribeMeta(cb) {
+        onValue(ref(db, 'meta'), snap => cb(snap.val() || {}));
+        const url = FIREBASE_CONFIG.databaseURL.replace(/\/$/, '') + '/meta.json';
+        setInterval(() => {
+          fetch(url, { cache: 'no-store' }).then(r => r.ok ? r.json() : undefined).then(v => { if (v !== undefined) cb(v || {}); }).catch(() => {});
+        }, 3000);
+      },
+      canAdmin: !!ADMIN_KEY,
+      // 관리자 키가 맞을 때만 Firebase 규칙이 쓰기를 허용합니다
+      reset() { return update(ref(db), { [`admin/${ADMIN_KEY}/ping`]: serverTimestamp(), 'meta/resetAt': serverTimestamp() }); },
+      hide(id) { return update(ref(db), { [`admin/${ADMIN_KEY}/ping`]: serverTimestamp(), [`meta/hidden/${id}`]: true }); }
     };
   }
-  const KEY = 'jimjjak-demo-items';
-  const subs = [];
+  const KEY = 'jimjjak-demo-items', META = 'jimjjak-demo-meta';
+  const subs = [], metaSubs = [];
+  const emitMeta = () => metaSubs.forEach(cb => cb(ls.get(META, {})));
   const emit = () => subs.forEach(cb => cb(ls.get(KEY, [])));
   window.addEventListener('storage', e => { if (e.key === KEY) emit(); });
   return {
@@ -249,7 +263,10 @@ async function createStore() {
       ls.set(KEY, items); emit();
     },
     status(cb) { cb('demo'); },
-    clearAll() { ls.set(KEY, []); emit(); }
+    subscribeMeta(cb) { metaSubs.push(cb); cb(ls.get(META, {})); },
+    canAdmin: true,
+    async reset() { ls.set(KEY, []); ls.set(META, { resetAt: Date.now() }); emit(); emitMeta(); },
+    async hide(id) { const m = ls.get(META, {}); m.hidden = { ...(m.hidden || {}), [id]: true }; ls.set(META, m); emitMeta(); }
   };
 }
 
@@ -307,7 +324,7 @@ function mountForm(root, store) {
 
 /* ── 대형 화면 ── */
 function mountWall(root, store) {
-  const writeUrl = location.origin + location.pathname + '?m=write';
+  const writeUrl = location.origin + location.pathname + '?m=write'; // 관리자 키는 QR에 넣지 않음
   const bokeh = Array.from({ length: 14 }, () => {
     const s = 60 + Math.random() * 180;
     return `<i style="width:${s}px;height:${s}px;left:${Math.random() * 100}%;top:${Math.random() * 100}%;opacity:${.25 + Math.random() * .45};--d:${14 + Math.random() * 16}s;--x:${(Math.random() * 120 - 60) | 0}px;--y:${(Math.random() * 120 - 60) | 0}px"></i>`;
@@ -336,9 +353,7 @@ function mountWall(root, store) {
   if (window.QRCode) new QRCode(root.querySelector('#qrcode'), { text: writeUrl, width: 512, height: 512, colorDark: '#4e3b2c', colorLight: '#fffdf9', correctLevel: QRCode.CorrectLevel.M });
   if (DEMO) mountForm(root.querySelector('#phone'), store);
 
-  // 화면 상태(초기화 시점, 숨긴 카드)는 이 브라우저에만 저장
-  const VIEW = 'jimjjak-view';
-  let view = ls.get(VIEW, { resetAt: 0, hidden: [] });
+  let meta = {};
   const grid = root.querySelector('#grid'), empty = root.querySelector('#empty'), count = root.querySelector('#count');
   let all = [], shown = new Set(), lastSig = null, first = true;
 
@@ -351,12 +366,15 @@ function mountWall(root, store) {
     el.querySelector('.tag').textContent = (item.nick || '익명의 짐꾼') + '의 짐짝';
     el.querySelector('.burden').textContent = item.burden;
     el.querySelector('.story').textContent = item.story || '';
-    el.querySelector('.del').onclick = () => { view.hidden.push(item.id); ls.set(VIEW, view); render(); };
+    const del = el.querySelector('.del');
+    if (store.canAdmin) del.onclick = () => store.hide(item.id).catch(() => alertBtn('숨기기 권한이 없어요'));
+    else del.remove();
     return el;
   }
 
   function render() {
-    const items = all.filter(i => (i.at || 0) > view.resetAt && !view.hidden.includes(i.id));
+    const hidden = meta.hidden || {};
+    const items = all.filter(i => (i.at || 0) > (meta.resetAt || 0) && !hidden[i.id]);
     const sig = items.map(i => i.id).join(',');
     if (sig === lastSig) return;
     lastSig = sig;
@@ -370,6 +388,7 @@ function mountWall(root, store) {
   }
 
   store.subscribe(items => { all = items; render(); });
+  store.subscribeMeta(m => { meta = m || {}; render(); });
   const modeEl = root.querySelector('#mode');
   const MODE_TEXT = { on: '실시간 연결됨', off: '3초마다 확인 중', demo: '체험 모드 · 이 브라우저에만 저장' };
   store.status(st => { modeEl.className = 'mode ' + st; modeEl.textContent = MODE_TEXT[st]; });
@@ -377,6 +396,8 @@ function mountWall(root, store) {
   // 초기화: 두 번 눌러야 실행
   const btn = root.querySelector('#reset');
   let timer;
+  function alertBtn(msg) { btn.textContent = msg; setTimeout(() => { btn.textContent = '초기화'; }, 2500); }
+  if (!store.canAdmin) btn.remove();
   btn.onclick = () => {
     if (!btn.classList.contains('armed')) {
       btn.classList.add('armed'); btn.textContent = '한 번 더 누르면 모두 지움';
@@ -385,10 +406,7 @@ function mountWall(root, store) {
     }
     clearTimeout(timer);
     btn.classList.remove('armed'); btn.textContent = '초기화';
-    view = { resetAt: Date.now(), hidden: [] };
-    ls.set(VIEW, view);
-    if (store.clearAll) store.clearAll();
-    render();
+    store.reset().catch(() => alertBtn('초기화 권한이 없어요 (관리자 주소 확인)'));
   };
 }
 
