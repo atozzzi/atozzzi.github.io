@@ -69,10 +69,13 @@
     background:rgba(70,48,32,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;animation:fadein .35s ease-out}
   .example .cap{font-family:var(--serif);font-weight:700;font-size:clamp(22px,2.2vw,38px);color:#fffaf3;text-shadow:0 2px 16px rgba(80,50,30,.5)}
   .example .sub{font-size:clamp(14px,1.1vw,18px);color:rgba(255,250,243,.9);margin-top:-12px}
-  .example img{max-width:min(92vw,1400px);max-height:76vh;border-radius:20px;box-shadow:0 24px 60px rgba(60,40,25,.35)}
-  .example .card{width:min(560px,86vw);margin:30px 0 10px;cursor:default;font-size:1.15em}
-  .example .card .burden{font-size:clamp(26px,2.2vw,36px)}
-  .example .card .story{font-size:clamp(16px,1.3vw,20px)}
+  .example .ex-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:34px 30px;width:min(1500px,94vw);align-items:start}
+  .example .card{margin:22px 0 6px;cursor:default;animation:exin .5s ease-out both}
+  .example .card .body{padding:22px 40px 22px}
+  .example .card .burden{font-size:clamp(18px,1.35vw,24px)}
+  .example .card .story{font-size:clamp(13px,.92vw,15px);line-height:1.7}
+  @keyframes exin{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  @media (max-width:1000px){.example{justify-content:flex-start;overflow-y:auto}.example .ex-grid{grid-template-columns:1fr;width:min(520px,92vw)}}
   @keyframes fadein{from{opacity:0}to{opacity:1}}
 
   .board{position:relative;overflow-y:auto;padding:clamp(28px,3vw,52px)}
@@ -402,22 +405,28 @@ function mountWall(root, store) {
   const MODE_TEXT = { on: '실시간 연결됨', off: '3초마다 확인 중', demo: '체험 모드 · 이 브라우저에만 저장' };
   store.status(st => { modeEl.className = 'mode ' + st; modeEl.textContent = MODE_TEXT[st]; });
 
-  // 예시 보기: img/example.jpg 가 있으면 그 이미지를, 없으면 예시 짐가방을 크게 보여줌
-  const EXAMPLE = { id: 'example0', nick: '짐짝클럽', burden: '오랫동안 내려놓지 못했던 마음',
-    story: '조금씩 내려놓는 연습을 시작했어요. 아직 다 내려놓진 못했지만, 마주하기 시작한 것만으로도 한결 가벼워졌어요.' };
-  let exampleImg = null;
-  const probe = new Image();
-  probe.onload = () => { exampleImg = probe.src; };
-  probe.src = 'img/example.jpg';
+  // 예시 보기: 예시 짐가방 6개를 한 화면에 보여줌
+  const EXAMPLES = [
+    { id: 'ex1', nick: '느림보', burden: '완벽해야 한다는 마음', story: '실수 하나에도 며칠씩 자책했어요. 올해는 "80점이면 충분하다"고 스스로에게 말해주는 연습을 했고, 그랬더니 오히려 더 많은 걸 시작할 수 있었어요.' },
+    { id: 'ex2', nick: '초보팀장', burden: '처음 맡아본 리더 역할', story: '모든 걸 혼자 해결하려다 지쳤어요. 도움을 요청하는 것도 능력이라는 걸 알게 됐고, 팀원들에게 먼저 물어보기 시작했어요.' },
+    { id: 'ex3', nick: '', burden: '남의 시선', story: '다른 사람이 어떻게 볼지가 늘 먼저였어요. 내가 진짜 원하는 게 뭔지 한 번씩 적어보면서, 조금씩 내 기준으로 선택하고 있어요.' },
+    { id: 'ex4', nick: '다시시작', burden: '미뤄둔 꿈', story: '"언젠가"라는 말로 몇 년을 미뤘어요. 올해는 하루 30분이라도 해보자고 시작했고, 아직 서툴지만 다시 설레는 마음을 찾았어요.' },
+    { id: 'ex5', nick: '예스맨탈출', burden: '거절하지 못하는 마음', story: '부탁을 거절하면 관계가 깨질까 봐 늘 무리했어요. 처음으로 "이번엔 어려워요"라고 말해봤는데, 생각보다 아무 일도 일어나지 않았어요.' },
+    { id: 'ex6', nick: '내일의나', burden: '지나간 일에 대한 후회', story: '그때 다른 선택을 했다면 하는 생각에 오래 머물렀어요. 그 선택 덕분에 지금의 내가 있다는 걸 받아들이면서, 이제는 앞을 보기 시작했어요.' },
+  ];
+  const EX_COLORS = ['p0', 'p1', 'p3', 'p4', 'p2', 'p0'];
   function showExample() {
     const ov = document.createElement('div');
     ov.className = 'example';
-    ov.innerHTML = '<div class="cap">이렇게 남겨주시면 돼요</div><div class="sub">화면 아무 곳이나 누르면 닫혀요</div>';
-    if (exampleImg) {
-      const im = new Image(); im.src = exampleImg; im.alt = '예시'; ov.appendChild(im);
-    } else {
-      const c = card(EXAMPLE, false); c.querySelector('.del')?.remove(); ov.appendChild(c);
-    }
+    ov.innerHTML = '<div class="cap">이렇게 남겨주시면 돼요</div><div class="sub">화면 아무 곳이나 누르면 닫혀요</div><div class="ex-grid"></div>';
+    const g = ov.querySelector('.ex-grid');
+    EXAMPLES.forEach((ex, i) => {
+      const c = card(ex, false);
+      c.querySelector('.del')?.remove();
+      c.className = 'card ' + EX_COLORS[i];
+      c.style.animationDelay = (i * 0.08) + 's';
+      g.appendChild(c);
+    });
     const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
     const onKey = e => { if (e.key === 'Escape') close(); };
     ov.onclick = close;
