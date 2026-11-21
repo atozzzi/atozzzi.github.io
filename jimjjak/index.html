@@ -65,11 +65,14 @@
   .mode.demo::before{content:"●";color:#c0623a;margin-right:5px}
   .btn-ghost{border:1px solid var(--gold-soft);background:rgba(255,255,255,.5);color:var(--ink-soft);padding:7px 16px;border-radius:999px;font-size:13px}
   .btn-ghost.armed{background:#c98b5e;border-color:#c98b5e;color:#fff}
-  .example{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:4vh 4vw;
+  .example{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:4vh 4vw;
     background:rgba(70,48,32,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;animation:fadein .35s ease-out}
   .example .cap{font-family:var(--serif);font-weight:700;font-size:clamp(22px,2.2vw,38px);color:#fffaf3;text-shadow:0 2px 16px rgba(80,50,30,.5)}
   .example .sub{font-size:clamp(14px,1.1vw,18px);color:rgba(255,250,243,.9);margin-top:-12px}
-  .example .ex-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:34px 30px;width:min(1500px,94vw);align-items:start}
+  .example .chips{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:min(1100px,92vw);margin-top:-4px}
+  .example .chips span{padding:7px 18px;border-radius:999px;background:rgba(255,250,243,.88);color:#8a6544;font-size:clamp(14px,1.05vw,18px);
+    border:1px solid rgba(195,154,104,.45);box-shadow:0 4px 12px rgba(80,50,30,.15);animation:exin .45s ease-out both}
+  .example .ex-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:26px 30px;width:min(1500px,94vw);align-items:start}
   .example .card{margin:22px 0 6px;cursor:default;animation:exin .5s ease-out both}
   .example .card .body{padding:22px 40px 22px}
   .example .card .burden{font-size:clamp(18px,1.35vw,24px)}
@@ -414,11 +417,14 @@ function mountWall(root, store) {
     { id: 'ex5', nick: '예스맨탈출', burden: '거절하지 못하는 마음', story: '부탁을 거절하면 관계가 깨질까 봐 늘 무리했어요. 처음으로 "이번엔 어려워요"라고 말해봤는데, 생각보다 아무 일도 일어나지 않았어요.' },
     { id: 'ex6', nick: '내일의나', burden: '지나간 일에 대한 후회', story: '그때 다른 선택을 했다면 하는 생각에 오래 머물렀어요. 그 선택 덕분에 지금의 내가 있다는 걸 받아들이면서, 이제는 앞을 보기 시작했어요.' },
   ];
+  const TOPICS = ['불안', '걱정', '완벽주의', '인간관계', '책임감', '경제', '건강', '미래', '가족', '자책'];
   const EX_COLORS = ['p0', 'p1', 'p3', 'p4', 'p2', 'p0'];
   function showExample() {
     const ov = document.createElement('div');
     ov.className = 'example';
-    ov.innerHTML = '<div class="cap">이렇게 남겨주시면 돼요</div><div class="sub">화면 아무 곳이나 누르면 닫혀요</div><div class="ex-grid"></div>';
+    ov.innerHTML = '<div class="cap">이렇게 남겨주시면 돼요</div><div class="sub">화면 아무 곳이나 누르면 닫혀요</div><div class="chips"></div><div class="ex-grid"></div>';
+    const chips = ov.querySelector('.chips');
+    TOPICS.forEach((t, i) => { const el = document.createElement('span'); el.textContent = '#' + t; el.style.animationDelay = (i * 0.04) + 's'; chips.appendChild(el); });
     const g = ov.querySelector('.ex-grid');
     EXAMPLES.forEach((ex, i) => {
       const c = card(ex, false);
